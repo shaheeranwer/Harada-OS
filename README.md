@@ -4,7 +4,7 @@ A free, single-file goal tracker built on the **Harada method**: the system used
 
 It runs in your browser. There is no account, no server and no tracking. Your entries stay on your own device.
 
-**Live page:** `https://YOUR-USERNAME.github.io/harada-os/`
+**Live page:** `https://shaheeranwer.github.io/Harada-OS/`
 
 ---
 
