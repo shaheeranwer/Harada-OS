@@ -1,0 +1,1158 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<style>body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>Harada Goal OS</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@700;800&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: sticky ops bar with a day countdown and tab strip over one reading column. Today is a tick-list first; charts are 9x9 maps with an editable list beneath. */
+:root{
+  --bg:#EDF0F4; --surface:#F8F9FB; --surface2:#E1E6EE; --ink:#0F1724; --ink2:#4A586E; --line:#C9D1DD;
+  --accent:#2540E8; --on-accent:#FFFFFF; --accent-soft:#DDE3FD;
+  --ok:#12805C; --on-ok:#FFFFFF; --warn:#B4540A; --bad:#C0322B;
+  --display:"Archivo","Helvetica Neue",Arial,sans-serif;
+  --body:"IBM Plex Sans","Segoe UI",Roboto,Arial,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0B0F17; --surface:#121826; --surface2:#1B2436; --ink:#E7ECF4; --ink2:#9AA7BC; --line:#2A3650;
+    --accent:#8DA0FF; --on-accent:#0B0F17; --accent-soft:#1E2850;
+    --ok:#3DD6A0; --on-ok:#06231A; --warn:#F0A25A; --bad:#FF7A70; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0B0F17; --surface:#121826; --surface2:#1B2436; --ink:#E7ECF4; --ink2:#9AA7BC; --line:#2A3650;
+  --accent:#8DA0FF; --on-accent:#0B0F17; --accent-soft:#1E2850;
+  --ok:#3DD6A0; --on-ok:#06231A; --warn:#F0A25A; --bad:#FF7A70; color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font:15px/1.5 var(--body);padding-block:0 64px}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);background:var(--bg);z-index:30}
+.wrap{max-width:880px;margin-inline:auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+h1,h2,h3{font-family:var(--display);line-height:1.15;margin:0;text-wrap:balance}
+h2{font-size:26px;font-weight:800;letter-spacing:-.01em}
+h3{font-size:17px;font-weight:700}
+p{margin:0}
+.mono{font-family:var(--mono)}
+.muted{color:var(--ink2)}
+.small{font-size:13px}
+.label{font:500 11px/1.2 var(--mono);letter-spacing:.09em;text-transform:uppercase;color:var(--ink2)}
+.num{font-variant-numeric:tabular-nums}
+
+/* ops bar */
+.bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--bg);border-bottom:1px solid var(--line)}
+.bar-top{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding-block:12px 4px}
+.brand{font:800 18px var(--display);letter-spacing:.02em}
+.brand i{font-style:normal;color:var(--accent)}
+.count{font:500 12px var(--mono);color:var(--ink2);text-align:right}
+.count b{color:var(--ink);font-weight:500}
+.tabs{display:flex;gap:2px;overflow-x:auto;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tab{appearance:none;background:none;border:0;border-bottom:2px solid transparent;color:var(--ink2);font:600 12px var(--body);letter-spacing:.06em;text-transform:uppercase;padding:10px 12px;white-space:nowrap;cursor:pointer}
+.tab[aria-current="page"]{color:var(--ink);border-bottom-color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+main{padding-block:22px;display:flex;flex-direction:column;gap:28px}
+section{display:flex;flex-direction:column;gap:12px;min-width:0}
+.row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:0;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--surface)}
+.stat{padding:12px 14px;border-right:1px solid var(--line);border-bottom:1px solid var(--line);margin:0 -1px -1px 0}
+.stat b{display:block;font:500 24px/1.2 var(--mono)}
+.stat span{font-size:12px;color:var(--ink2)}
+
+/* forms */
+input[type=text],input[type=number],input[type=date],textarea,select{font:inherit;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:9px 10px;width:100%;min-width:0}
+textarea{resize:vertical;min-height:64px}
+.field{display:flex;flex-direction:column;gap:5px;min-width:0}
+.btn{appearance:none;font:600 13px var(--body);padding:9px 14px;border-radius:8px;border:1px solid var(--line);background:var(--surface);color:var(--ink);cursor:pointer}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.btn.sm{padding:6px 10px;font-size:12px}
+
+/* checklist */
+.group-h{display:flex;justify-content:space-between;align-items:baseline;padding-top:6px}
+.chk{display:flex;gap:12px;align-items:flex-start;padding:12px 0;border-bottom:1px solid var(--line);cursor:pointer}
+.chk input{appearance:none;-webkit-appearance:none;width:24px;height:24px;flex:none;border:2px solid var(--ink2);border-radius:7px;margin:0;background:var(--surface);cursor:pointer}
+.chk input:checked{background:var(--ok) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7.5' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/18px no-repeat;border-color:var(--ok)}
+.chk span{flex:1;min-width:0}
+.chk small{display:block;color:var(--ink2);font-size:12.5px}
+.min-box{border:2px solid var(--accent);border-radius:12px;padding:4px 14px 6px;background:var(--surface)}
+.min-box .chk:last-child{border-bottom:0}
+.pill{font:500 11px var(--mono);letter-spacing:.06em;text-transform:uppercase;padding:3px 8px;border-radius:999px;background:var(--accent-soft);color:var(--ink)}
+.pill.ok{background:var(--ok);color:var(--on-ok)}
+.bar-prog{height:10px;border-radius:99px;background:var(--surface2);overflow:hidden}
+.bar-prog i{display:block;height:100%;background:var(--accent);border-radius:99px}
+.bar-prog.ok i{background:var(--ok)}
+
+/* mandala */
+.mandala{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.blk{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--line);border:1px solid var(--line)}
+.cell{appearance:none;border:0;margin:0;aspect-ratio:1;background:var(--surface);color:var(--ink);font:500 clamp(7px,2.1vw,11px)/1.15 var(--body);padding:2px;overflow:hidden;text-align:center;display:flex;align-items:center;justify-content:center;cursor:pointer;word-break:break-word}
+.cell span{display:-webkit-box;-webkit-line-clamp:5;-webkit-box-orient:vertical;overflow:hidden}
+.cell.p{background:var(--accent-soft);font-weight:600}
+.cell.g{background:var(--accent);color:var(--on-accent);font-weight:700}
+.pillar-card{border-top:2px solid var(--ink);padding-top:10px;display:flex;flex-direction:column;gap:6px}
+.act{display:grid;grid-template-columns:22px 1fr;gap:8px;align-items:center}
+.act b{font:500 11px var(--mono);color:var(--ink2);text-align:right}
+
+/* progress */
+.heat{display:grid;grid-auto-flow:column;grid-template-rows:repeat(7,14px);grid-auto-columns:14px;gap:3px;overflow-x:auto;padding-bottom:4px}
+.hc{border-radius:3px;background:var(--surface2)}
+.chart text{fill:var(--ink2);font:11px var(--mono)}
+.chart .ln{stroke:var(--line);stroke-width:1}
+.chart .ax{stroke:var(--ink2);stroke-width:1}
+.row-sp{display:flex;justify-content:space-between;gap:12px;align-items:baseline}
+.rule{padding:14px 0;border-bottom:1px solid var(--line);display:flex;flex-direction:column;gap:4px}
+.rule b{font-family:var(--display);font-size:16px}
+.tl{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;align-items:start;padding:10px 0;border-bottom:1px solid var(--line)}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(16px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);padding:8px 14px;border-radius:8px;font:500 12px var(--mono);z-index:40}
+@media (prefers-reduced-motion:no-preference){.bar-prog i{transition:width .3s}}
+
+.rt{display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:center;padding:3px 0}
+.rt-group{border:1px solid var(--line);border-radius:10px;padding:10px;display:flex;flex-direction:column;gap:6px;background:var(--surface)}
+.rt-group .rt:first-child{grid-template-columns:1fr auto}
+.mincb{display:flex;gap:6px;align-items:center;font:500 11px var(--mono);letter-spacing:.05em;text-transform:uppercase;color:var(--ink2);cursor:pointer}
+.mincb input{width:18px;height:18px;margin:0}
+@media (max-width:480px){.rt{grid-template-columns:1fr auto}.rt .mincb{grid-column:1/-1}}
+</style>
+</head><body>
+<script>
+"use strict";
+var PRESET = {
+ "startDate": null,
+ "routine": [
+  {
+   "g": "Morning",
+   "items": [
+    {
+     "id": "m1",
+     "t": "First 15 minutes awake: no phone",
+     "s": "Water, wash face, move your body. Edit this list to fit your day."
+    },
+    {
+     "id": "m2",
+     "t": "Move for 5 minutes (stretch, push-ups, walk)"
+    },
+    {
+     "id": "m3",
+     "t": "Eat a proper breakfast"
+    }
+   ]
+  },
+  {
+   "g": "Goal 1",
+   "items": [
+    {
+     "id": "a1",
+     "t": "Work on goal 1 for 30 minutes",
+     "min": 1,
+     "s": "Start rule: open it and do the first 5 minutes only."
+    },
+    {
+     "id": "a2",
+     "t": "Write 3 lines of notes"
+    }
+   ]
+  },
+  {
+   "g": "Goal 2",
+   "items": [
+    {
+     "id": "b1",
+     "t": "Do the main action for goal 2",
+     "min": 1
+    },
+    {
+     "id": "b2",
+     "t": "Log what I did"
+    }
+   ]
+  },
+  {
+   "g": "Night",
+   "items": [
+    {
+     "id": "n1",
+     "t": "Write tomorrow's first action, with a time",
+     "min": 1
+    },
+    {
+     "id": "n2",
+     "t": "Phone charging away from the bed"
+    },
+    {
+     "id": "n3",
+     "t": "Diary written (3 minutes)"
+    },
+    {
+     "id": "n4",
+     "t": "Lights out on time"
+    }
+   ]
+  }
+ ],
+ "goals": [
+  {
+   "title": "Learn a skill",
+   "kind": "count",
+   "label": "Lessons",
+   "unit": "lessons",
+   "total": 60,
+   "before": 0,
+   "off": 150,
+   "subs": [
+    {
+     "name": "Course or path 1",
+     "done": 0,
+     "total": 0
+    },
+    {
+     "name": "Course or path 2",
+     "done": 0,
+     "total": 0
+    }
+   ],
+   "sheet": {
+    "goal": "Write your goal: specific, with a number and a date. Example: finish 60 lessons by the deadline.",
+    "why": "",
+    "gain": "",
+    "who": "",
+    "now": "",
+    "strong": "",
+    "weak": "",
+    "plan": ""
+   },
+   "chart": {
+    "goal": "Finish my course and 60 lessons by the deadline",
+    "pillars": [
+     [
+      "Daily habit",
+      [
+       "30 minutes or one lesson every day",
+       "Same time every day",
+       "Start rule: first 5 minutes only",
+       "Phone in another room while I study",
+       "25 minutes focus, 5 minutes break",
+       "Tick the day before sleeping",
+       "Never miss twice in a row",
+       "One longer session on the weekend"
+      ]
+     ],
+     [
+      "Plan",
+      [
+       "List every lesson in one place",
+       "Number them and mark done",
+       "Finish part 1 in month 1",
+       "Finish part 2 in month 2",
+       "Finish part 3 in month 3",
+       "Choose the next course in advance",
+       "Check pace against the goal every Sunday",
+       "Move the deadline only after a review"
+      ]
+     ],
+     [
+      "Notes",
+      [
+       "Choose one notes tool",
+       "3 lines per lesson",
+       "Keep a cheat sheet",
+       "One write-up a week in my own words",
+       "Save a certificate or proof of each step",
+       "10-minute review of last week",
+       "Keep a stuck log: problem and fix",
+       "Share one write-up publicly"
+      ]
+     ],
+     [
+      "Practice",
+      [
+       "One exercise a week without help",
+       "20 minutes on a hard task before asking",
+       "Redo lessons I only followed along",
+       "Build one small project",
+       "Join a community or study group",
+       "Teach one thing to someone",
+       "Pick one topic from outside my comfort zone",
+       "Review mistakes monthly"
+      ]
+     ],
+     [
+      "Basics",
+      [
+       "List the basics this skill depends on",
+       "20 minutes on basics, 3 days a week",
+       "Read one article a week",
+       "Watch one talk a week",
+       "Learn the main tools",
+       "Fill one knowledge gap per week",
+       "Keep a glossary of terms",
+       "Test myself with a monthly quiz"
+      ]
+     ],
+     [
+      "Environment",
+      [
+       "Study spot with only what I need",
+       "Phone charges away from the bed",
+       "App limits on the apps that eat my time",
+       "Social apps only after the minimum is done",
+       "Alarm clock across the room",
+       "Headphones and a focus playlist",
+       "Tell one person my goal",
+       "Weekly check-in with that person"
+      ]
+     ],
+     [
+      "Never zero",
+      [
+       "Minimum day: the ticked items, even on bad days",
+       "Read my reason every morning",
+       "Missed a day: do the 5-minute version",
+       "Streak visible on this page",
+       "Reward after a full week",
+       "No new goals until these are on track",
+       "Write what quitting costs",
+       "Compare to last week, not to others"
+      ]
+     ],
+     [
+      "Use it",
+      [
+       "Write down where this skill leads",
+       "List 3 people or places that hire for it",
+       "Update my CV or profile every month",
+       "Pick a first certificate or project",
+       "Set a date for the first application",
+       "Learn what employers ask for",
+       "Ask someone ahead of me for advice",
+       "Review the plan every quarter"
+      ]
+     ]
+    ]
+   }
+  },
+  {
+   "title": "Get fitter",
+   "kind": "measure",
+   "label": "Weight",
+   "unit": "kg",
+   "start": 70,
+   "floor": 72,
+   "target": 74,
+   "stretch": 75,
+   "off": 150,
+   "subs": [],
+   "sheet": {
+    "goal": "Write your goal: specific, with a number and a date. Example: reach 70 kg by the deadline.",
+    "why": "",
+    "gain": "",
+    "who": "",
+    "now": "",
+    "strong": "",
+    "weak": "",
+    "plan": ""
+   },
+   "chart": {
+    "goal": "Reach my target weight by the deadline",
+    "pillars": [
+     [
+      "Training",
+      [
+       "Train 3-4 days a week",
+       "Simple full-body or upper/lower plan",
+       "Warm up 5 minutes",
+       "Add weight or 1 rep each week",
+       "15-minute home session on rest days",
+       "Learn form from videos or a trainer",
+       "Never skip legs",
+       "Write the session before I go"
+      ]
+     ],
+     [
+      "Food",
+      [
+       "Eat on a clock: 3 meals and 2 snacks",
+       "Breakfast within an hour of waking",
+       "Add calories or cut them in small steps",
+       "Cook or prepare food for 2 days at once",
+       "Weekly grocery list",
+       "Adjust by 250 kcal if the trend is flat for 2 weeks",
+       "Keep cheap staples at home",
+       "Water through the day"
+      ]
+     ],
+     [
+      "Protein",
+      [
+       "Set a daily protein number",
+       "Protein at every meal",
+       "Cheap sources I like: eggs, lentils, milk, chicken",
+       "Track protein for 2 weeks to learn portions",
+       "Boil or prepare tomorrow's protein tonight",
+       "Supplements only if the budget allows",
+       "Read labels once and remember",
+       "Review weekly"
+      ]
+     ],
+     [
+      "Sleep",
+      [
+       "Fixed bedtime and wake time",
+       "Phone charges away from the bed",
+       "No screens in the last 30 minutes",
+       "7-8 hours",
+       "Dark, cool room",
+       "No caffeine late",
+       "Weekend wake time within 1 hour of weekdays",
+       "Nap only if short"
+      ]
+     ],
+     [
+      "Tracking",
+      [
+       "Weigh in once a week, same morning",
+       "Log it on the Today tab",
+       "Log every workout",
+       "Monthly photos: front, side, back",
+       "Monthly measurements",
+       "Judge the 2-week average",
+       "Adjust the plan every 2 weeks",
+       "Keep a progress photo folder"
+      ]
+     ],
+     [
+      "Money and logistics",
+      [
+       "Pay for the gym or equipment on day 1",
+       "Go at a fixed time",
+       "Weekly food budget",
+       "Bag packed the night before",
+       "Find a training partner",
+       "Plan the route and travel time",
+       "Buy staples in bulk",
+       "Review monthly spend"
+      ]
+     ],
+     [
+      "Base strength",
+      [
+       "Pick 3 basic moves to test",
+       "Test them every 2 weeks",
+       "Add 1 rep a week",
+       "Balance push with pull",
+       "Core work 3 times a week",
+       "Walk 20 minutes on rest days",
+       "Stretch 5 minutes daily",
+       "Set a number to hit in month 3"
+      ]
+     ],
+     [
+      "Recovery and care",
+      [
+       "Rest day: sleep, walk, no guilt",
+       "Skincare and grooming basics",
+       "Posture check through the day",
+       "Clothes that fit now",
+       "Water 2-3 litres",
+       "Stress release: walk, music, friends",
+       "Check in with a doctor if something hurts",
+       "Monthly review of what to change"
+      ]
+     ]
+    ]
+   }
+  }
+ ],
+ "milestones": [
+  {
+   "off": 7,
+   "text": "Baseline week: first weigh-in, lesson list written, phone limits set."
+  },
+  {
+   "off": 30,
+   "text": "28 of 30 days with the minimum ticked."
+  },
+  {
+   "off": 60,
+   "text": "First third of the lessons done. First write-up published."
+  },
+  {
+   "off": 90,
+   "text": "Second review: change what is not working in the charts."
+  },
+  {
+   "off": 120,
+   "text": "Most of the target reached. Plan the final month."
+  },
+  {
+   "off": 150,
+   "text": "Deadline. Compare the result with the goal sheet."
+  }
+ ],
+ "rules": [
+  [
+   "Wake-up",
+   "If I wake up, then I stand up before I touch the phone. The phone charges across the room and the alarm is on it. First 15 minutes: water, wash face, move."
+  ],
+  [
+   "Start rule",
+   "If I am home and the laptop is open, then I do the first 5 minutes of my goal. Five minutes is a full success. Most days I keep going."
+  ],
+  [
+   "Scroll after, not before",
+   "Social apps and video come after the minimum items are ticked. Until then the phone is in another room. Deleting the app often fails because another app takes its place, so the rule is about order."
+  ],
+  [
+   "Friction on the phone",
+   "Set app timers for the apps that eat my time, turn on grayscale, log out after each use, turn off autoplay, and move them off the home screen."
+  ],
+  [
+   "Bed is for sleeping",
+   "The phone does not come into bed. If I cannot sleep or feel the urge to scroll, I get up, wash my face, and read or stretch for 10 minutes."
+  ],
+  [
+   "Bad day",
+   "A bad day is the ticked minimum items and nothing more. A missed day is data. Two missed days in a row means I do the 5-minute version tomorrow, no speech."
+  ],
+  [
+   "New goals",
+   "A new idea goes into a notes list. It waits until Sunday review. No new goal before these two are on track."
+  ]
+ ]
+};
+</script>
+<header class="bar"><div class="wrap">
+  <div class="bar-top"><div class="brand">HARADA<i>/</i>OS</div><div class="count num" id="count"></div></div>
+  <nav class="tabs" id="tabs" aria-label="Sections"></nav>
+</div></header>
+<main class="wrap" id="view"></main>
+<div class="toast" id="toast" hidden></div>
+<script>
+"use strict";
+var DIARY = [
+  ["did","What I did today (facts only)"],
+  ["well","What went well, and what that proves I can do"],
+  ["off","What pulled me off track, and what triggered it"],
+  ["learn","What I learned"],
+  ["next","Tomorrow's first action, with a time"]
+];
+function buildDefaults(){
+  var P = PRESET, start = P.startDate || todayStr();
+  var d = {v:2, startDate:start, goals:[], routine:clone(P.routine), milestones:[], rules:clone(P.rules)};
+  P.goals.forEach(function(g){
+    var o = clone(g.sheet);
+    o.title = g.title; o.kind = g.kind; o.label = g.label; o.unit = g.unit;
+    o.start = g.start; o.floor = g.floor; o.target = g.target; o.stretch = g.stretch;
+    o.total = g.total; o.before = g.before || 0;
+    o.deadline = g.deadline || addDays(start, g.off);
+    o.subs = clone(g.subs || []);
+    o.chart = {goal:g.chart.goal, pillars:g.chart.pillars.map(function(p){ return {n:p[0], a:p[1].slice()}; })};
+    d.goals.push(o);
+  });
+  P.milestones.forEach(function(m, i){ d.milestones.push({id:"k" + i, date:m.date || addDays(start, m.off), done:false, text:m.text}); });
+  return d;
+}
+</script>
+<script>
+"use strict";
+var LSK = "harada-os-v2";
+var S = {core:null, days:{}, revs:{}};
+var ctx = null, edited = false, timers = {}, chains = {}, VIEWS = {}, ACTS = {};
+var VS = {date:null, chart:0, wo:0, mo:0, confirm:null};
+var TABS = [["today","Today"],["charts","Charts"],["plan","Plan"],["progress","Progress"],["review","Review"],["rules","Rules"]];
+
+function $(s, r){ return (r || document).querySelector(s); }
+function esc(s){ return String(s == null ? "" : s).replace(/[&<>"']/g, function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]; }); }
+function clone(o){ return JSON.parse(JSON.stringify(o)); }
+function pad(n){ return n < 10 ? "0" + n : "" + n; }
+function ymd(d){ return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()); }
+function parseD(s){ var p = s.split("-"); return new Date(+p[0], +p[1] - 1, +p[2]); }
+function dn(s){ var p = s.split("-"); return Date.UTC(+p[0], +p[1] - 1, +p[2]) / 864e5; }
+function diffDays(a, b){ return Math.round(dn(b) - dn(a)); }
+function addDays(s, n){ var d = parseD(s); d.setDate(d.getDate() + n); return ymd(d); }
+function todayStr(){ return ymd(new Date()); }
+function fmtDate(s){ return parseD(s).toLocaleDateString("en-GB", {weekday:"short", day:"numeric", month:"short"}); }
+function fmtLong(s){ return parseD(s).toLocaleDateString("en-GB", {day:"numeric", month:"short", year:"numeric"}); }
+function isoWeek(s){
+  var p = s.split("-"), d = new Date(Date.UTC(+p[0], +p[1] - 1, +p[2])), day = d.getUTCDay() || 7;
+  d.setUTCDate(d.getUTCDate() + 4 - day);
+  var y = d.getUTCFullYear(), w = Math.ceil(((d - Date.UTC(y, 0, 1)) / 864e5 + 1) / 7);
+  return y + "-W" + pad(w);
+}
+function weekStart(s){ var d = parseD(s), day = d.getDay() || 7; return addDays(s, 1 - day); }
+function num(v, dflt){ return (typeof v === "number" && isFinite(v)) ? v : (dflt == null ? 0 : dflt); }
+function r1(x){ return Math.round(x * 10) / 10; }
+function uid(){ return "i" + Date.now().toString(36) + Math.floor(Math.random() * 1e4).toString(36); }
+
+function fillCore(c){ var d = buildDefaults(); if (c) Object.keys(c).forEach(function(k){ d[k] = c[k]; }); return d; }
+
+/* ---------- paths and saving ---------- */
+function getPath(path){ var o = S; path.split(".").forEach(function(k){ o = o == null ? undefined : o[k]; }); return o; }
+function docKey(path){
+  var p = path.split(".");
+  if (p[0] === "core") return "core";
+  if (p[0] === "days") return "d-" + p[1];
+  if (p[0] === "revs") return "r-" + p[1];
+  return null;
+}
+function docObj(key){
+  if (key === "core") return S.core;
+  return key.charAt(0) === "d" ? S.days[key.slice(2)] : S.revs[key.slice(2)];
+}
+function setPath(path, val){
+  var p = path.split("."), o = S;
+  for (var i = 0; i < p.length - 1; i++){
+    var k = p[i];
+    if (o[k] == null || typeof o[k] !== "object") o[k] = /^\d+$/.test(p[i + 1]) ? [] : {};
+    o = o[k];
+  }
+  o[p[p.length - 1]] = val;
+  var key = docKey(path);
+  if (key) queueSave(key);
+}
+function setStatus(t){ var e = $("#status"); if (e) e.textContent = t; }
+function queueSave(key){
+  edited = true; setStatus("saving");
+  clearTimeout(timers[key]);
+  timers[key] = setTimeout(function(){ writeDoc(key); }, 600);
+}
+function writeDoc(key){
+  try { localStorage.setItem(LSK, JSON.stringify(S)); } catch (e) { setStatus("could not save here, use Export backup"); return; }
+  if (!ctx){ setStatus("saved on this device"); return; }
+  var obj = clone(docObj(key) || {});
+  chains[key] = (chains[key] || Promise.resolve())
+    .then(function(){ return ctx.col.doc(key).set(obj); })
+    .then(function(){ setStatus("saved to your account"); }, function(){ setStatus("save failed, kept on this device"); });
+}
+function pushAll(){
+  queueSave("core");
+  Object.keys(S.days).forEach(function(k){ queueSave("d-" + k); });
+  Object.keys(S.revs).forEach(function(k){ queueSave("r-" + k); });
+}
+
+/* ---------- routine scoring ---------- */
+function allItems(){ var a = []; S.core.routine.forEach(function(g){ g.items.forEach(function(i){ a.push(i); }); }); return a; }
+function dayStats(date){
+  var d = S.days[date], items = allItems(), n = 0, mn = 0, mt = 0;
+  items.forEach(function(i){
+    var on = !!(d && d.c && d.c[i.id]);
+    if (on) n++;
+    if (i.min){ mt++; if (on) mn++; }
+  });
+  return {n:n, total:items.length, min:mn, minTotal:mt, minDone:mt > 0 && mn === mt, pct:items.length ? n / items.length : 0};
+}
+function streak(){
+  var t = todayStr(), s = dayStats(t).minDone ? t : addDays(t, -1), c = 0;
+  while (c < 1000 && dayStats(s).minDone){ c++; s = addDays(s, -1); }
+  return c;
+}
+function bestStreak(){
+  var s = S.core.startDate, t = todayStr(), best = 0, cur = 0, guard = 0;
+  while (s <= t && guard++ < 2000){ if (dayStats(s).minDone){ cur++; if (cur > best) best = cur; } else cur = 0; s = addDays(s, 1); }
+  return best;
+}
+function sumGoal(i){ var n = 0; Object.keys(S.days).forEach(function(k){ n += num(S.days[k]["v" + i]); }); return n; }
+function readings(i){
+  var a = [];
+  Object.keys(S.days).sort().forEach(function(k){ var w = S.days[k]["v" + i]; if (typeof w === "number" && w > 0) a.push({d:k, w:w}); });
+  return a;
+}
+function goalWeek(i, ws){
+  var g = S.core.goals[i], n = 0, k = 0, sum = 0;
+  for (var j = 0; j < 7; j++){ var v = (S.days[addDays(ws, j)] || {})["v" + i]; if (typeof v === "number" && v > 0){ n += v; k++; sum += v; } }
+  return g.kind === "count" ? n : (k ? r1(sum / k) : null);
+}
+function countedDays(from, n){ var c = 0; for (var i = 0; i < n; i++) if (dayStats(addDays(from, i)).minDone) c++; return c; }
+
+/* ---------- shell ---------- */
+function toast(msg){ var t = $("#toast"); t.textContent = msg; t.hidden = false; clearTimeout(toast.t); toast.t = setTimeout(function(){ t.hidden = true; }, 2200); }
+function tabNow(){ var h = (location.hash || "").slice(1); return TABS.some(function(t){ return t[0] === h; }) ? h : "today"; }
+function renderCount(){
+  var t = todayStr(), best = null;
+  S.core.goals.forEach(function(g){ var l = diffDays(t, g.deadline); if (l >= 0 && (!best || l < best.l)) best = {l:l, g:g}; });
+  var st = $("#status") ? $("#status").textContent : "";
+  $("#count").innerHTML = (best ? "<b>" + best.l + "</b> days to " + esc(best.g.title || "goal") + "<br>" : "") + "<span id=\"status\">" + esc(st || (ctx ? "synced to your account" : "this device")) + "</span>";
+}
+function route(){
+  var t = tabNow();
+  $("#tabs").innerHTML = TABS.map(function(x){
+    return "<button class=\"tab\" data-act=\"go\" data-v=\"" + x[0] + "\"" + (x[0] === t ? " aria-current=\"page\"" : "") + ">" + x[1] + "</button>";
+  }).join("");
+  $("#view").innerHTML = VIEWS[t]();
+  renderCount();
+}
+ACTS.go = function(el){ location.hash = el.dataset.v; };
+
+/* ---------- delegated events ---------- */
+function readVal(t){ return t.type === "number" ? (t.value === "" ? null : +t.value) : t.value; }
+document.addEventListener("input", function(e){
+  var t = e.target;
+  if (!t.dataset || !t.dataset.bind || t.type === "checkbox" || t.type === "date" || t.tagName === "SELECT") return;
+  setPath(t.dataset.bind, readVal(t));
+  if (ACTS.after) ACTS.after(t);
+});
+document.addEventListener("change", function(e){
+  var t = e.target;
+  if (t.dataset && t.dataset.act === "pickdate"){ if (t.value){ VS.date = t.value; route(); } return; }
+  if (!t.dataset || !t.dataset.bind) return;
+  setPath(t.dataset.bind, t.type === "checkbox" ? t.checked : readVal(t));
+  if (t.dataset.rr) route();
+  else if (ACTS.after) ACTS.after(t);
+});
+document.addEventListener("click", function(e){
+  var el = e.target.closest ? e.target.closest("[data-act]") : null;
+  if (el && ACTS[el.dataset.act]) ACTS[el.dataset.act](el, e);
+});
+window.addEventListener("hashchange", function(){ route(); window.scrollTo(0, 0); });
+
+/* ---------- boot ---------- */
+async function boot(){
+  var had = false;
+  try {
+    var raw = localStorage.getItem(LSK);
+    if (raw){ var j = JSON.parse(raw); S.core = fillCore(j.core); S.days = j.days || {}; S.revs = j.revs || {}; had = true; }
+  } catch (e) {}
+  if (!S.core) S.core = fillCore(null);
+  VS.date = todayStr();
+  route();
+  try {
+    if (window.claude && claude.use){
+      var user = await claude.use("user");
+      var id = user ? await user.id() : null;
+      var db = id ? await claude.use("db") : null;
+      if (db){
+        var col = db.collection("data/users/" + id);
+        var snap = await col.limit(1000).get();
+        ctx = {col:col};
+        var days = {}, revs = {}, core = null;
+        snap.docs.forEach(function(d){
+          var k = d.id, v = clone(d.data() || {});
+          if (k === "core") core = v;
+          else if (k.indexOf("d-") === 0) days[k.slice(2)] = v;
+          else if (k.indexOf("r-") === 0) revs[k.slice(2)] = v;
+        });
+        if (core || Object.keys(days).length || Object.keys(revs).length){
+          if (!edited){ S.core = fillCore(core); S.days = days; S.revs = revs; route(); }
+        } else pushAll();
+        setStatus("synced to your account");
+      }
+    }
+  } catch (e) {}
+  if (!ctx){ if (!had) queueSave("core"); else setStatus("this device only"); }
+}
+</script>
+<script>
+"use strict";
+function field(label, path, o){
+  o = o || {};
+  var v = getPath(path), id = "f-" + path.replace(/[^a-z0-9]/gi, "-"), inner;
+  var foc = o.f ? " data-focus=\"" + o.f + "\"" : "";
+  if (o.rows){
+    inner = "<textarea id=\"" + id + "\" rows=\"" + o.rows + "\" data-bind=\"" + esc(path) + "\"" + foc + (o.ph ? " placeholder=\"" + esc(o.ph) + "\"" : "") + ">" + esc(v) + "</textarea>";
+  } else {
+    inner = "<input id=\"" + id + "\" type=\"" + (o.type || "text") + "\"" + (o.step ? " step=\"" + o.step + "\"" : "") +
+      (o.type === "number" ? " inputmode=\"decimal\"" : "") +
+      " value=\"" + esc(v == null ? "" : v) + "\" data-bind=\"" + esc(path) + "\"" + foc + (o.rr ? " data-rr=\"1\"" : "") + (o.ph ? " placeholder=\"" + esc(o.ph) + "\"" : "") + ">";
+  }
+  return "<div class=\"field\"><label class=\"label\" for=\"" + id + "\">" + esc(label) + "</label>" + inner + "</div>";
+}
+function chkRow(date, i, d){
+  var on = !!(d.c && d.c[i.id]);
+  return "<label class=\"chk\"><input type=\"checkbox\" data-bind=\"days." + date + ".c." + i.id + "\"" + (on ? " checked" : "") + "><span>" +
+    esc(i.t) + (i.s ? "<small>" + esc(i.s) + "</small>" : "") + "</span></label>";
+}
+function statsHtml(date){
+  var st = dayStats(date);
+  return "<div class=\"stat\"><b>" + streak() + "</b><span>day streak, minimum met</span></div>" +
+    "<div class=\"stat\"><b>" + bestStreak() + "</b><span>best streak</span></div>" +
+    "<div class=\"stat\"><b>" + Math.round(st.pct * 100) + "%</b><span>routine done " + (date === todayStr() ? "today" : "that day") + "</span></div>";
+}
+function refreshToday(){
+  var date = VS.date, st = dayStats(date), s = $("#t-stats"), m = $("#t-min");
+  if (s) s.innerHTML = statsHtml(date);
+  if (m){ m.textContent = st.minDone ? "Day counted" : st.min + " of " + st.minTotal; m.className = "pill" + (st.minDone ? " ok" : ""); }
+}
+ACTS.after = function(t){
+  var b = t.dataset.bind || "";
+  if (/^days\.[^.]+\.c\./.test(b)) refreshToday();
+  if (t.dataset.focus){
+    var c = $(".cell[data-f=\"" + t.dataset.focus + "\"] span");
+    if (c) c.textContent = t.value;
+  }
+};
+ACTS.dprev = function(){ VS.date = addDays(VS.date, -1); route(); };
+ACTS.dnext = function(){ if (VS.date < todayStr()){ VS.date = addDays(VS.date, 1); route(); } };
+ACTS.dtoday = function(){ VS.date = todayStr(); route(); };
+ACTS.energy = function(el){ setPath("days." + VS.date + ".e", +el.dataset.v); route(); };
+
+VIEWS.today = function(){
+  var date = VS.date, d = S.days[date] || {c:{}, d:{}}, st = dayStats(date), n = diffDays(S.core.startDate, date) + 1, goals = S.core.goals;
+  var h = "";
+  h += "<section><div class=\"row\" style=\"justify-content:space-between\"><div><h2>" + esc(fmtDate(date)) + "</h2><div class=\"label\">" + (n > 0 ? "Day " + n + " of the program" : "Before the program") + (date === todayStr() ? " · today" : "") + "</div></div>" +
+    "<div class=\"row\" style=\"gap:6px\"><button class=\"btn sm\" data-act=\"dprev\" aria-label=\"Previous day\">&lsaquo;</button>" +
+    "<input type=\"date\" id=\"pick-date\" data-act=\"pickdate\" value=\"" + date + "\" max=\"" + todayStr() + "\" style=\"width:auto\">" +
+    "<button class=\"btn sm\" data-act=\"dnext\" aria-label=\"Next day\">&rsaquo;</button>" +
+    (date !== todayStr() ? "<button class=\"btn sm\" data-act=\"dtoday\">Today</button>" : "") + "</div></div>" +
+    "<p class=\"small muted\">Read before you scroll: " + goals.map(function(g){ return "<b style=\"color:var(--ink)\">" + esc(g.chart.goal || g.title) + "</b>"; }).join(" and ") + ".</p></section>";
+  h += "<div class=\"stats\" id=\"t-stats\">" + statsHtml(date) + "</div>";
+  h += "<section><div class=\"min-box\"><div class=\"group-h\"><h3>Minimum day</h3><span class=\"pill" + (st.minDone ? " ok" : "") + "\" id=\"t-min\">" + (st.minDone ? "Day counted" : st.min + " of " + st.minTotal) + "</span></div>";
+  S.core.routine.forEach(function(g){ g.items.forEach(function(i){ if (i.min) h += chkRow(date, i, d); }); });
+  if (!st.minTotal) h += "<p class=\"small muted\" style=\"padding:10px 0\">No item is marked as minimum yet. Open the Plan tab, find Daily routine, and tick \"Minimum\" on the 2 or 3 things you will do even on a bad day.</p>";
+  h += "</div><p class=\"small muted\">Do these on a bad day and the day counts. Everything below is the full routine.</p></section>";
+  S.core.routine.forEach(function(g){
+    var items = g.items.filter(function(i){ return !i.min; });
+    if (!items.length) return;
+    h += "<section><div class=\"group-h\"><h3>" + esc(g.g) + "</h3></div><div>" + items.map(function(i){ return chkRow(date, i, d); }).join("") + "</div></section>";
+  });
+  var e = num(d.e);
+  h += "<section><h3>Numbers</h3><div class=\"grid2\">" + goals.map(function(g, i){
+    var lab = g.kind === "count" ? (g.label || "Done") + " finished today" : (g.label || "Reading") + " today" + (g.unit ? ", " + g.unit : "");
+    return field(lab, "days." + date + ".v" + i, {type:"number", step:g.kind === "count" ? "1" : "0.1"});
+  }).join("") + "</div>" +
+    "<div class=\"field\"><span class=\"label\">Energy when I woke up</span><div class=\"row\" style=\"gap:6px\">" +
+    [1,2,3,4,5].map(function(k){ return "<button class=\"btn sm" + (e === k ? " primary" : "") + "\" data-act=\"energy\" data-v=\"" + k + "\" aria-pressed=\"" + (e === k) + "\">" + k + "</button>"; }).join("") +
+    "<span class=\"small muted\">1 flat, 5 sharp</span></div></div></section>";
+  h += "<section><h3>Diary</h3><p class=\"small muted\">Short and honest. Facts first, no punishment.</p>" +
+    DIARY.map(function(q){ return field(q[1], "days." + date + ".d." + q[0], {rows:2}); }).join("") + "</section>";
+  return h;
+};
+
+/* ---------- charts ---------- */
+var ORDER = [[0,0],[0,1],[0,2],[1,2],[2,2],[2,1],[2,0],[1,0]];
+function orderIdx(r, c){ for (var i = 0; i < 8; i++) if (ORDER[i][0] === r && ORDER[i][1] === c) return i; return -1; }
+function cell(txt, cls, f){ return "<button class=\"cell " + cls + "\" data-act=\"cell\" data-f=\"" + f + "\" aria-label=\"" + esc(txt) + "\"><span>" + esc(txt) + "</span></button>"; }
+ACTS.cell = function(el){
+  var t = $("[data-focus=\"" + el.dataset.f + "\"]");
+  if (t){ t.scrollIntoView({block:"center", behavior:"smooth"}); t.focus({preventScroll:true}); }
+};
+ACTS.chartsel = function(el){ VS.chart = +el.dataset.v; route(); };
+VIEWS.charts = function(){
+  var k = VS.chart, g = S.core.goals[k], c = g.chart, base = "core.goals." + k + ".chart", h = "";
+  h += "<section><h2>Open Window 64</h2><p class=\"muted\">One goal in the middle, 8 pillars around it, 8 actions under each pillar. Tap a square to edit it below. Write your own, because a chart that is not yours does not get used.</p>" +
+    "<div class=\"row\" style=\"gap:6px\">" + S.core.goals.map(function(x, i){
+      return "<button class=\"btn" + (i === k ? " primary" : "") + "\" data-act=\"chartsel\" data-v=\"" + i + "\">" + esc(x.title || "Goal " + (i + 1)) + "</button>";
+    }).join("") + "</div></section>";
+  h += "<div class=\"mandala\">";
+  for (var br = 0; br < 3; br++) for (var bc = 0; bc < 3; bc++){
+    h += "<div class=\"blk\">";
+    var pi = (br === 1 && bc === 1) ? -1 : orderIdx(br, bc);
+    for (var r = 0; r < 3; r++) for (var cc = 0; cc < 3; cc++){
+      if (br === 1 && bc === 1){
+        if (r === 1 && cc === 1) h += cell(c.goal, "g", "goal");
+        else { var q = orderIdx(r, cc); h += cell(c.pillars[q].n, "p", "p" + q); }
+      } else if (r === 1 && cc === 1){
+        h += cell(c.pillars[pi].n, "p", "p" + pi);
+      } else {
+        var j = orderIdx(r, cc); h += cell(c.pillars[pi].a[j], "", "a" + pi + "-" + j);
+      }
+    }
+    h += "</div>";
+  }
+  h += "</div>";
+  h += "<section>" + field("Central goal", base + ".goal", {rows:2, f:"goal"}) + "</section>";
+  c.pillars.forEach(function(p, i){
+    h += "<section class=\"pillar-card\"><div class=\"label\">Pillar " + (i + 1) + "</div>" + field("Pillar name", base + ".pillars." + i + ".n", {f:"p" + i});
+    p.a.forEach(function(a, j){
+      h += "<div class=\"act\"><b>" + (j + 1) + "</b><input type=\"text\" aria-label=\"Pillar " + (i + 1) + " action " + (j + 1) + "\" value=\"" + esc(a) + "\" data-bind=\"" + base + ".pillars." + i + ".a." + j + "\" data-focus=\"a" + i + "-" + j + "\"></div>";
+    });
+    h += "</section>";
+  });
+  return h;
+};
+</script>
+<script>
+"use strict";
+/* ---------- plan: routine editor, goal sheets, timeline, reset ---------- */
+function mut(path, fn){ var a = getPath(path); fn(a); setPath(path, a); route(); }
+ACTS.addgrp = function(){ mut("core.routine", function(a){ a.push({g:"New group", items:[{id:uid(), t:"New item"}]}); }); };
+ACTS.delgrp = function(el){ mut("core.routine", function(a){ a.splice(+el.dataset.v, 1); }); };
+ACTS.additem = function(el){ mut("core.routine." + el.dataset.v + ".items", function(a){ a.push({id:uid(), t:"New item"}); }); };
+ACTS.delitem = function(el){ var p = el.dataset.v.split("-"); mut("core.routine." + p[0] + ".items", function(a){ a.splice(+p[1], 1); }); };
+ACTS.addms = function(){ mut("core.milestones", function(a){ a.push({id:uid(), date:todayStr(), done:false, text:""}); }); };
+ACTS.delms = function(el){ mut("core.milestones", function(a){ a.splice(+el.dataset.v, 1); }); };
+ACTS.addsub = function(el){ mut("core.goals." + el.dataset.v + ".subs", function(a){ a.push({name:"", done:0, total:0}); }); };
+ACTS.delsub = function(el){ var p = el.dataset.v.split("-"); mut("core.goals." + p[0] + ".subs", function(a){ a.splice(+p[1], 1); }); };
+ACTS.askreset = function(el){ VS.confirm = el.dataset.v; route(); };
+ACTS.noreset = function(){ VS.confirm = null; route(); };
+ACTS.doreset = function(){
+  var k = VS.confirm; VS.confirm = null;
+  if (k === "clear"){
+    S.core.goals.forEach(function(g){
+      ["goal","why","gain","who","now","strong","weak","plan"].forEach(function(f){ g[f] = ""; });
+      g.chart.goal = "";
+      g.chart.pillars.forEach(function(p){ p.n = ""; p.a = p.a.map(function(){ return ""; }); });
+    });
+    S.core.milestones = [];
+    queueSave("core"); toast("Example text cleared");
+  } else if (k === "all"){
+    Object.keys(timers).forEach(function(t){ clearTimeout(timers[t]); });
+    var old = Object.keys(S.days).map(function(x){ return "d-" + x; }).concat(Object.keys(S.revs).map(function(x){ return "r-" + x; }));
+    S.core = fillCore(null); S.days = {}; S.revs = {};
+    try { localStorage.setItem(LSK, JSON.stringify(S)); } catch (e) {}
+    if (ctx) old.forEach(function(x){ ctx.col.doc(x).delete().catch(function(){}); });
+    queueSave("core"); toast("Everything erased");
+  }
+  route();
+};
+function confirmRow(kind, label, note){
+  if (VS.confirm === kind) return "<div class=\"row\"><span class=\"small\">" + esc(note) + "</span><button class=\"btn sm primary\" data-act=\"doreset\">Yes, do it</button><button class=\"btn sm\" data-act=\"noreset\">Cancel</button></div>";
+  return "<div><button class=\"btn\" data-act=\"askreset\" data-v=\"" + kind + "\">" + esc(label) + "</button></div>";
+}
+function routineEditor(){
+  var h = "<section style=\"border-top:2px solid var(--ink);padding-top:14px\"><h3>Daily routine</h3><p class=\"small muted\">This is the checklist on the Today tab. Tick Minimum on the 2 or 3 things you will do even on a terrible day. A day counts when all of those are ticked, and that drives your streak.</p>";
+  S.core.routine.forEach(function(g, gi){
+    h += "<div class=\"rt-group\"><div class=\"rt\"><input type=\"text\" aria-label=\"Group name\" value=\"" + esc(g.g) + "\" data-bind=\"core.routine." + gi + ".g\" style=\"font-weight:600\"><button class=\"btn sm\" data-act=\"delgrp\" data-v=\"" + gi + "\" aria-label=\"Remove group\">Remove group</button></div>";
+    g.items.forEach(function(it, ii){
+      var p = "core.routine." + gi + ".items." + ii;
+      h += "<div class=\"rt\"><label class=\"mincb\"><input type=\"checkbox\" data-bind=\"" + p + ".min\"" + (it.min ? " checked" : "") + "><span>Minimum</span></label>" +
+        "<input type=\"text\" aria-label=\"Item\" value=\"" + esc(it.t) + "\" data-bind=\"" + p + ".t\">" +
+        "<button class=\"btn sm\" data-act=\"delitem\" data-v=\"" + gi + "-" + ii + "\" aria-label=\"Remove item\">&times;</button></div>";
+    });
+    h += "<div><button class=\"btn sm\" data-act=\"additem\" data-v=\"" + gi + "\">Add item</button></div></div>";
+  });
+  return h + "<div><button class=\"btn\" data-act=\"addgrp\">Add group</button></div></section>";
+}
+function goalSheet(i){
+  var g = S.core.goals[i], b = "core.goals." + i, h = "<section style=\"border-top:2px solid var(--ink);padding-top:14px\"><div class=\"label\">Goal " + (i + 1) + "</div><h3>" + esc(g.title || "Untitled goal") + "</h3>";
+  h += "<div class=\"grid2\">" + field("Name", b + ".title", {rr:1});
+  h += "<div class=\"field\"><label class=\"label\" for=\"kind-" + i + "\">How do you measure it?</label><select id=\"kind-" + i + "\" data-bind=\"" + b + ".kind\" data-rr=\"1\">" +
+    "<option value=\"count\"" + (g.kind === "count" ? " selected" : "") + ">Count things done (lessons, pages, sessions)</option>" +
+    "<option value=\"measure\"" + (g.kind === "measure" ? " selected" : "") + ">Reach a number (weight, savings, speed)</option></select></div></div>";
+  h += "<div class=\"grid2\">" + field("What you measure (e.g. Rooms, Weight)", b + ".label", {rr:1}) + field("Unit (e.g. rooms, kg)", b + ".unit", {rr:1}) + field("Deadline", b + ".deadline", {type:"date", rr:1});
+  if (g.kind === "count") h += field("Total to reach", b + ".total", {type:"number", step:"1", rr:1}) + field("Already done before you began", b + ".before", {type:"number", step:"1", rr:1});
+  else h += field("Starting value", b + ".start", {type:"number", step:"0.1", rr:1}) + field("Minimum (floor)", b + ".floor", {type:"number", step:"0.5", rr:1}) + field("Target", b + ".target", {type:"number", step:"0.5", rr:1}) + field("Stretch", b + ".stretch", {type:"number", step:"0.5", rr:1});
+  h += "</div>";
+  if (g.kind === "count"){
+    h += "<div class=\"label\">Parts (a course, a path, a book)</div>";
+    g.subs.forEach(function(s, j){
+      h += "<div class=\"rt\" style=\"grid-template-columns:1fr auto\"><input type=\"text\" aria-label=\"Part name\" value=\"" + esc(s.name) + "\" data-bind=\"" + b + ".subs." + j + ".name\"><button class=\"btn sm\" data-act=\"delsub\" data-v=\"" + i + "-" + j + "\" aria-label=\"Remove part\">&times;</button></div>";
+    });
+    h += "<div><button class=\"btn sm\" data-act=\"addsub\" data-v=\"" + i + "\">Add part</button></div>";
+  }
+  h += field("Goal, specific and with a date", b + ".goal", {rows:3}) +
+    field("Why I want this", b + ".why", {rows:3}) + field("What I gain when I reach it", b + ".gain", {rows:2}) +
+    field("Who I am doing it for", b + ".who", {rows:2}) + field("Where I am now", b + ".now", {rows:2}) +
+    field("My strengths", b + ".strong", {rows:2}) + field("What gets in my way", b + ".weak", {rows:3}) +
+    field("My plan for the obstacles", b + ".plan", {rows:2}) + "</section>";
+  return h;
+}
+VIEWS.plan = function(){
+  var h = "<section><h2>Plan</h2>" +
+    "<details open style=\"border:1px solid var(--line);border-radius:10px;padding:12px 14px;background:var(--surface)\"><summary style=\"font-weight:600;cursor:pointer\">How this works</summary>" +
+    "<ol class=\"small\" style=\"margin:10px 0 0;padding-left:20px;display:flex;flex-direction:column;gap:6px\">" +
+    "<li><b>Set 2 goals</b> below: a name, how you measure it, a number and a deadline. Rewrite or delete the examples.</li>" +
+    "<li><b>Build the 64-square chart</b> for each goal in the Charts tab: 8 pillars, 8 actions under each.</li>" +
+    "<li><b>Shape your daily routine</b> below. Pick 2 or 3 minimum items you will do even on a bad day.</li>" +
+    "<li><b>Every day:</b> tick the routine, enter your numbers, write the 5-line diary on the Today tab.</li>" +
+    "<li><b>Every Sunday:</b> do the weekly review. <b>Every month:</b> the monthly review, then fix the chart.</li></ol></details>" +
+    field("Program start date", "core.startDate", {type:"date", rr:1}) + "</section>";
+  S.core.goals.forEach(function(g, i){ h += goalSheet(i); });
+  h += routineEditor();
+  h += "<section style=\"border-top:2px solid var(--ink);padding-top:14px\"><h3>Timeline to the deadline</h3><p class=\"small muted\">Checkpoints between today and the finish. Tick them off in the weekly review.</p>";
+  var ms = S.core.milestones.map(function(m, i){ return {m:m, i:i}; }).sort(function(a, b){ return a.m.date < b.m.date ? -1 : 1; });
+  ms.forEach(function(o){
+    var p = "core.milestones." + o.i;
+    h += "<div class=\"tl\"><input type=\"checkbox\" aria-label=\"Done\" data-bind=\"" + p + ".done\"" + (o.m.done ? " checked" : "") + " style=\"width:22px;height:22px\">" +
+      "<div class=\"field\"><input type=\"date\" aria-label=\"Date\" value=\"" + esc(o.m.date) + "\" data-bind=\"" + p + ".date\" style=\"max-width:170px\"><textarea rows=\"2\" aria-label=\"Checkpoint\" data-bind=\"" + p + ".text\">" + esc(o.m.text) + "</textarea>" +
+      "<div><button class=\"btn sm\" data-act=\"delms\" data-v=\"" + o.i + "\">Remove</button></div></div></div>";
+  });
+  h += "<div><button class=\"btn\" data-act=\"addms\">Add checkpoint</button></div></section>";
+  h += "<section style=\"border-top:2px solid var(--ink);padding-top:14px\"><h3>Start clean</h3><p class=\"small muted\">The example goals, charts and checkpoints are only there to show what a filled page looks like.</p>" +
+    confirmRow("clear", "Clear the example text", "Blank all goal text, chart squares and checkpoints? Your ticks and numbers stay.") +
+    confirmRow("all", "Erase everything and restore the examples", "This deletes all ticks, diary entries, numbers and reviews on this device. Export a backup first if unsure.") + "</section>";
+  return h;
+};
+</script>
+<script>
+"use strict";
+/* ---------- progress ---------- */
+function niceStep(range){ return range <= 6 ? 1 : range <= 14 ? 2 : range <= 30 ? 5 : range <= 80 ? 10 : 25; }
+function measureChart(i){
+  var c = S.core, g = c.goals[i], W = 640, H = 270, L = 40, R = 34, T = 12, B = 24;
+  var x0 = dn(c.startDate), x1 = Math.max(dn(g.deadline), x0 + 1);
+  var pts = readings(i).filter(function(p){ return p.d >= c.startDate; });
+  var refs = [g.start, g.floor, g.target, g.stretch].filter(function(v){ return typeof v === "number" && isFinite(v); });
+  var all = refs.concat(pts.map(function(p){ return p.w; }));
+  if (!all.length) return "";
+  var lo = Math.min.apply(null, all), hi = Math.max.apply(null, all), step = niceStep(hi - lo + 2);
+  var ymin = Math.floor((lo - 1) / step) * step, ymax = Math.ceil((hi + 1) / step) * step;
+  function X(s){ return L + Math.min(Math.max((dn(s) - x0) / (x1 - x0), 0), 1) * (W - L - R); }
+  function Y(v){ return T + (ymax - v) / (ymax - ymin) * (H - T - B); }
+  var s = "<svg class=\"chart\" viewBox=\"0 0 " + W + " " + H + "\" width=\"100%\" role=\"img\" aria-label=\"" + esc(g.label) + " over time against the target path\">";
+  for (var v = ymin; v <= ymax; v += step) s += "<line class=\"ln\" x1=\"" + L + "\" x2=\"" + (W - R) + "\" y1=\"" + Y(v) + "\" y2=\"" + Y(v) + "\"/><text x=\"" + (L - 6) + "\" y=\"" + (Y(v) + 4) + "\" text-anchor=\"end\">" + v + "</text>";
+  var m = c.startDate.slice(0, 8) + "01", guard = 0;
+  while (guard++ < 40){
+    var p = m.split("-"), ny = +p[0], nm = +p[1] + 1; if (nm > 12){ nm = 1; ny++; }
+    m = ny + "-" + pad(nm) + "-01";
+    if (m > g.deadline) break;
+    if (m < c.startDate) continue;
+    s += "<line class=\"ln\" x1=\"" + X(m) + "\" x2=\"" + X(m) + "\" y1=\"" + T + "\" y2=\"" + (H - B) + "\"/><text x=\"" + X(m) + "\" y=\"" + (H - 6) + "\" text-anchor=\"middle\">" + parseD(m).toLocaleDateString("en-GB", {month:"short"}) + "</text>";
+  }
+  function ref(val, col, dash, w){
+    if (typeof val !== "number" || !isFinite(val) || typeof g.start !== "number") return "";
+    return "<line x1=\"" + X(c.startDate) + "\" y1=\"" + Y(g.start) + "\" x2=\"" + X(g.deadline) + "\" y2=\"" + Y(val) + "\" stroke=\"" + col + "\" stroke-width=\"" + w + "\" stroke-dasharray=\"" + dash + "\"/><text x=\"" + (X(g.deadline) + 4) + "\" y=\"" + (Y(val) + 4) + "\">" + val + "</text>";
+  }
+  s += ref(g.stretch, "var(--ink2)", "2 4", 1.2) + ref(g.target, "var(--accent)", "6 4", 2) + ref(g.floor, "var(--ink2)", "6 4", 1.2);
+  var line = (typeof g.start === "number" ? [{d:c.startDate, w:g.start}] : []).concat(pts.filter(function(p){ return p.d !== c.startDate; }));
+  if (line.length > 1) s += "<polyline fill=\"none\" stroke=\"var(--ok)\" stroke-width=\"2.5\" stroke-linejoin=\"round\" points=\"" + line.map(function(p){ return X(p.d) + "," + Y(p.w); }).join(" ") + "\"/>";
+  line.forEach(function(p, k){ s += "<circle cx=\"" + X(p.d) + "\" cy=\"" + Y(p.w) + "\" r=\"" + (k === line.length - 1 ? 5 : 3.5) + "\" fill=\"var(--ok)\"/>"; });
+  if (line.length){ var last = line[line.length - 1]; s += "<text x=\"" + X(last.d) + "\" y=\"" + (Y(last.w) - 10) + "\" text-anchor=\"middle\" style=\"fill:var(--ink)\">" + last.w + "</text>"; }
+  return s + "</svg>";
+}
+function weekSum(i, ws){ var n = 0; for (var k = 0; k < 7; k++){ var d = S.days[addDays(ws, k)]; if (d) n += num(d["v" + i]); } return n; }
+function heatHtml(){
+  var t = todayStr(), ws0 = addDays(weekStart(t), -7 * 19), h = "<div class=\"heat\" role=\"img\" aria-label=\"Daily routine completion, last 20 weeks\">";
+  for (var i = 0; i < 140; i++){
+    var d = addDays(ws0, i);
+    if (d > t){ h += "<div class=\"hc\" style=\"opacity:.35\"></div>"; continue; }
+    var st = dayStats(d), pc = st.minDone ? Math.round(55 + 45 * st.pct) : Math.round(st.pct * 45);
+    h += "<div class=\"hc\" title=\"" + d + ": " + Math.round(st.pct * 100) + "%" + (st.minDone ? ", day counted" : "") + "\" style=\"background:color-mix(in srgb,var(--ok) " + pc + "%,var(--surface2))\"></div>";
+  }
+  return h + "</div>";
+}
+function measureBlock(i){
+  var c = S.core, g = c.goals[i], t = todayStr(), rl = readings(i), u = g.unit ? " " + g.unit : "";
+  var cur = rl.length ? rl[rl.length - 1].w : g.start, start = typeof g.start === "number" ? g.start : cur;
+  var wLeft = Math.max(diffDays(t, g.deadline) / 7, 0.1), need = r1((g.target - cur) / wLeft);
+  var last7 = rl.filter(function(p){ return p.d > addDays(t, -7); }), avg7 = last7.length ? r1(last7.reduce(function(a, p){ return a + p.w; }, 0) / last7.length) : "-";
+  return "<div class=\"stats\"><div class=\"stat\"><b>" + cur + "</b><span>" + esc(g.label || "now") + " now</span></div><div class=\"stat\"><b>" + (cur - start >= 0 ? "+" : "") + r1(cur - start) + "</b><span>since start</span></div>" +
+    "<div class=\"stat\"><b>" + r1(Math.abs(g.target - cur)) + "</b><span>" + (g.target >= cur ? "to go to" : "past") + " target " + g.target + esc(u) + "</span></div><div class=\"stat\"><b>" + (need >= 0 ? "+" : "") + need + "</b><span>per week needed</span></div>" +
+    "<div class=\"stat\"><b>" + avg7 + "</b><span>7-day average</span></div></div>" +
+    "<div style=\"overflow-x:auto\"><div style=\"min-width:420px\">" + measureChart(i) + "</div></div>" +
+    "<p class=\"small muted\">Green line is you. Blue dashed is the path to the target, grey dashed are the minimum and the stretch. Judge the trend over 2 weeks, not one day. Add readings on the Today tab.</p>";
+}
+function countBlock(i){
+  var c = S.core, g = c.goals[i], t = todayStr(), done = num(g.before) + sumGoal(i), total = Math.max(num(g.total), 1);
+  var rLeft = Math.max(diffDays(t, g.deadline) / 7, 0.1), rNeed = Math.max(0, Math.ceil((total - done) / rLeft));
+  var pace = Math.max(1, Math.ceil(total / Math.max(diffDays(c.startDate, g.deadline) / 7, 1)));
+  var h = "<div class=\"row-sp\"><b class=\"mono\" style=\"font-size:22px\">" + done + " / " + total + " " + esc(g.unit || "") + "</b><span class=\"small muted\">" + rNeed + " a week needed to finish by " + esc(fmtLong(g.deadline)) + "</span></div>" +
+    "<div class=\"bar-prog\"><i style=\"width:" + Math.min(100, Math.round(done / total * 100)) + "%\"></i></div>";
+  g.subs.forEach(function(p, j){
+    var pc = p.total > 0 ? Math.min(100, Math.round(num(p.done) / p.total * 100)) : 0;
+    h += "<div class=\"field\" style=\"padding-top:6px\"><div class=\"grid2\" style=\"grid-template-columns:2fr 1fr 1fr\">" +
+      "<input type=\"text\" aria-label=\"Part name\" value=\"" + esc(p.name) + "\" data-bind=\"core.goals." + i + ".subs." + j + ".name\">" +
+      "<input type=\"number\" inputmode=\"numeric\" aria-label=\"Done\" placeholder=\"done\" value=\"" + esc(p.done || "") + "\" data-bind=\"core.goals." + i + ".subs." + j + ".done\" data-rr=\"1\">" +
+      "<input type=\"number\" inputmode=\"numeric\" aria-label=\"Total\" placeholder=\"total\" value=\"" + esc(p.total || "") + "\" data-bind=\"core.goals." + i + ".subs." + j + ".total\" data-rr=\"1\"></div>" +
+      "<div class=\"bar-prog ok\"><i style=\"width:" + pc + "%\"></i></div></div>";
+  });
+  if (g.subs.length) h += "<p class=\"small muted\">Parts: name, done, total. Add or remove parts in the Plan tab.</p>";
+  var ws = weekStart(t), mx = pace, wk = [];
+  for (var k = 7; k >= 0; k--){ var s0 = addDays(ws, -7 * k), n = weekSum(i, s0); wk.push([s0, n]); if (n > mx) mx = n; }
+  h += "<div class=\"label\">" + esc(g.label || "Done") + " per week, last 8 weeks (pace needed " + pace + ")</div><div class=\"row\" style=\"align-items:flex-end;gap:8px;height:96px;flex-wrap:nowrap\">" +
+    wk.map(function(x){ return "<div style=\"flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:3px;height:100%\"><span class=\"mono small\">" + x[1] + "</span><div style=\"width:100%;height:" + Math.max(2, Math.round(x[1] / mx * 62)) + "px;background:" + (x[1] >= pace ? "var(--ok)" : "var(--accent)") + ";border-radius:3px\"></div></div>"; }).join("") + "</div>";
+  return h;
+}
+VIEWS.progress = function(){
+  var c = S.core, t = todayStr(), h = "<section><h2>Progress</h2></section>";
+  c.goals.forEach(function(g, i){
+    h += "<section><h3>" + esc(g.title || "Goal " + (i + 1)) + "</h3>" + (g.kind === "count" ? countBlock(i) : measureBlock(i)) + "</section>";
+  });
+  h += "<section><h3>Consistency</h3><div class=\"stats\"><div class=\"stat\"><b>" + countedDays(addDays(t, -6), 7) + "/7</b><span>days counted, last 7</span></div><div class=\"stat\"><b>" + countedDays(addDays(t, -29), 30) + "/30</b><span>days counted, last 30</span></div><div class=\"stat\"><b>" + streak() + "</b><span>current streak</span></div><div class=\"stat\"><b>" + bestStreak() + "</b><span>best streak</span></div></div>" +
+    heatHtml() + "<p class=\"small muted\">Each square is a day, oldest week on the left, Monday at the top. Brighter green means more of the routine done. A day counts when all minimum items are ticked.</p></section>";
+  return h;
+};
+
+/* ---------- review ---------- */
+ACTS.wprev = function(){ VS.wo -= 1; route(); };
+ACTS.wnext = function(){ if (VS.wo < 0){ VS.wo += 1; route(); } };
+ACTS.mprev = function(){ VS.mo -= 1; route(); };
+ACTS.mnext = function(){ if (VS.mo < 0){ VS.mo += 1; route(); } };
+function monthInfo(off){
+  var d = new Date(); d.setDate(1); d.setMonth(d.getMonth() + off);
+  var y = d.getFullYear(), m = d.getMonth() + 1, n = new Date(y, m, 0).getDate();
+  return {key:y + "-" + pad(m), start:y + "-" + pad(m) + "-01", n:n, label:d.toLocaleDateString("en-GB", {month:"long", year:"numeric"})};
+}
+function sel(label, path, opts){
+  var v = getPath(path), id = "f-" + path.replace(/[^a-z0-9]/gi, "-");
+  return "<div class=\"field\"><label class=\"label\" for=\"" + id + "\">" + esc(label) + "</label><select id=\"" + id + "\" data-bind=\"" + path + "\"><option value=\"\">Choose</option>" +
+    opts.map(function(o){ return "<option" + (String(v) === o ? " selected" : "") + ">" + esc(o) + "</option>"; }).join("") + "</select></div>";
+}
+function periodStat(i, from, n){
+  var g = S.core.goals[i], sum = 0, k = 0, tot = 0, first = null, last = null;
+  for (var j = 0; j < n; j++){ var v = (S.days[addDays(from, j)] || {})["v" + i]; if (typeof v === "number" && v > 0){ sum += v; k++; if (first == null) first = v; last = v; } }
+  if (g.kind === "count") return {v:sum, l:(g.label || "done") + " in the period"};
+  return {v:k ? r1(sum / k) : "-", l:"average " + (g.label || "reading").toLowerCase() + (g.unit ? ", " + g.unit : "")};
+}
+VIEWS.review = function(){
+  var t = todayStr(), ws = addDays(weekStart(t), 7 * VS.wo), wk = "w-" + isoWeek(ws), rp = "revs." + wk, full = 0, pctSum = 0;
+  for (var i = 0; i < 7; i++){ var dd = addDays(ws, i), st0 = dayStats(dd); pctSum += st0.pct; if (st0.pct >= 0.8) full++; }
+  var goals = S.core.goals;
+  var mi = monthInfo(VS.mo), mp = "revs.m-" + mi.key, mDays = countedDays(mi.start, mi.n);
+  var h = "<section><h2>Review</h2><p class=\"muted\">Weekly on Sunday, monthly on the last day of the month. Ten minutes. Look at the numbers first, then write.</p></section>";
+  h += "<section style=\"border-top:2px solid var(--ink);padding-top:14px\"><div class=\"row-sp\"><h3>Week of " + esc(fmtDate(ws)) + "</h3><div class=\"row\" style=\"gap:6px\"><button class=\"btn sm\" data-act=\"wprev\" aria-label=\"Previous week\">&lsaquo;</button><button class=\"btn sm\" data-act=\"wnext\" aria-label=\"Next week\">&rsaquo;</button></div></div>" +
+    "<div class=\"stats\"><div class=\"stat\"><b>" + countedDays(ws, 7) + "/7</b><span>days counted</span></div><div class=\"stat\"><b>" + Math.round(pctSum / 7 * 100) + "%</b><span>routine average</span></div><div class=\"stat\"><b>" + full + "</b><span>days at 80% or more</span></div>" +
+    goals.map(function(g, gi){ var s = periodStat(gi, ws, 7); return "<div class=\"stat\"><b>" + s.v + "</b><span>" + esc(g.title) + ": " + esc(s.l.replace(" in the period", "")) + "</span></div>"; }).join("") + "</div>" +
+    field("Wins this week", rp + ".wins", {rows:2}) + field("What got in the way", rp + ".block", {rows:2}) +
+    field("Average daily screen time this week, hours", rp + ".screen", {type:"number", step:"0.5"}) +
+    "<div class=\"grid2\">" + goals.map(function(g, gi){ return sel(g.title + " week, 1 to 5", rp + ".r" + gi, ["1","2","3","4","5"]); }).join("") + "</div>" +
+    field("One change for next week", rp + ".change", {rows:2}) + "</section>";
+  h += "<section style=\"border-top:2px solid var(--ink);padding-top:14px\"><div class=\"row-sp\"><h3>" + esc(mi.label) + "</h3><div class=\"row\" style=\"gap:6px\"><button class=\"btn sm\" data-act=\"mprev\" aria-label=\"Previous month\">&lsaquo;</button><button class=\"btn sm\" data-act=\"mnext\" aria-label=\"Next month\">&rsaquo;</button></div></div>" +
+    "<div class=\"stats\"><div class=\"stat\"><b>" + mDays + "/" + mi.n + "</b><span>days counted</span></div>" +
+    goals.map(function(g, gi){ var s = periodStat(gi, mi.start, mi.n); return "<div class=\"stat\"><b>" + s.v + "</b><span>" + esc(g.title) + ": " + esc(s.l.replace(" in the period", "")) + "</span></div>"; }).join("") + "</div>" +
+    sel("Did the month's checkpoint happen?", mp + ".hit", ["Yes","Partly","No"]) +
+    field("Keep and double down on", mp + ".keep", {rows:2}) + field("Cut or replace in the 64-square charts", mp + ".cut", {rows:2}) +
+    field("Next month's focus, one sentence", mp + ".focus", {rows:2}) + "</section>";
+  var keys = Object.keys(S.revs).sort().reverse().filter(function(k){ var r = S.revs[k]; return r && (r.wins || r.focus || r.change || r.keep); });
+  if (keys.length) h += "<section><h3>Past reviews</h3>" + keys.map(function(k){
+    var r = S.revs[k], txt = r.focus || r.change || r.wins || r.keep || "";
+    return "<details style=\"border-bottom:1px solid var(--line);padding:8px 0\"><summary class=\"small\"><span class=\"mono\">" + esc(k.replace(/^w-/, "week ").replace(/^m-/, "month ")) + "</span> &nbsp; " + esc(txt.slice(0, 70)) + "</summary><p class=\"small muted\" style=\"padding-top:6px;white-space:pre-wrap\">" +
+      esc([r.wins && "Wins: " + r.wins, r.block && "In the way: " + r.block, r.change && "Change: " + r.change, r.keep && "Keep: " + r.keep, r.cut && "Cut: " + r.cut, r.focus && "Focus: " + r.focus].filter(Boolean).join("\n")) + "</p></details>";
+  }).join("") + "</section>";
+  return h;
+};
+
+/* ---------- rules ---------- */
+ACTS.addrule = function(){ mut("core.rules", function(a){ a.push(["New rule", ""]); }); };
+ACTS.delrule = function(el){ mut("core.rules", function(a){ a.splice(+el.dataset.v, 1); }); };
+VIEWS.rules = function(){
+  var h = "<section><h2>Rules</h2><p class=\"muted\">If-then rules decide in advance what you do when the usual trap shows up, so you do not have to win an argument with yourself at 11 pm. Edit them until they describe your own traps.</p></section><section>";
+  S.core.rules.forEach(function(r, i){
+    h += "<div class=\"rule\"><div class=\"rt\" style=\"grid-template-columns:1fr auto\"><input type=\"text\" aria-label=\"Rule name\" value=\"" + esc(r[0]) + "\" data-bind=\"core.rules." + i + ".0\" style=\"font-weight:700\"><button class=\"btn sm\" data-act=\"delrule\" data-v=\"" + i + "\" aria-label=\"Remove rule\">Remove</button></div>" +
+      "<textarea rows=\"4\" aria-label=\"" + esc(r[0]) + "\" data-bind=\"core.rules." + i + ".1\">" + esc(r[1]) + "</textarea></div>";
+  });
+  return h + "<div><button class=\"btn\" data-act=\"addrule\">Add rule</button></div></section>";
+};
+
+boot();
+</script>
+<script>
+"use strict";
+(function(){
+  var base = VIEWS.rules;
+  VIEWS.rules = function(){
+    return base() + "<section style=\"border-top:2px solid var(--ink);padding-top:14px\"><h3>Backup</h3>" +
+      "<p class=\"small muted\">Export saves everything (charts, ticks, diary, weights, reviews) to one file. Do it every Sunday and keep the file somewhere safe. Import loads a backup and replaces what is on this page.</p>" +
+      "<div class=\"row\"><button class=\"btn primary\" data-act=\"bkexport\">Export backup</button>" +
+      "<label class=\"btn\" for=\"bk-file\" style=\"cursor:pointer\">Import backup</label>" +
+      "<input type=\"file\" id=\"bk-file\" accept=\".json,application/json\" hidden></div></section>";
+  };
+  ACTS.bkexport = function(){
+    try {
+      var blob = new Blob([JSON.stringify({app:"harada-os", v:1, core:S.core, days:S.days, revs:S.revs}, null, 1)], {type:"application/json"});
+      var a = document.createElement("a");
+      a.href = URL.createObjectURL(blob); a.download = "harada-backup-" + todayStr() + ".json";
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(function(){ URL.revokeObjectURL(a.href); }, 1000);
+      toast("Backup saved to your downloads");
+    } catch (e) { toast("Export failed"); }
+  };
+  document.addEventListener("change", function(e){
+    var t = e.target;
+    if (!t || t.id !== "bk-file" || !t.files || !t.files[0]) return;
+    var r = new FileReader();
+    r.onload = function(){
+      try {
+        var j = JSON.parse(r.result);
+        if (!j || j.app !== "harada-os" || !j.core) throw new Error("bad");
+        S.core = fillCore(j.core); S.days = j.days || {}; S.revs = j.revs || {};
+        queueSave("core"); Object.keys(S.days).forEach(function(k){ queueSave("d-" + k); }); Object.keys(S.revs).forEach(function(k){ queueSave("r-" + k); });
+        route(); toast("Backup loaded");
+      } catch (err) { toast("That file is not a Harada backup"); }
+    };
+    r.readAsText(t.files[0]); t.value = "";
+  });
+})();
+</script>
+</body></html>
