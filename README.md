@@ -73,14 +73,6 @@ You do not need to install anything.
 
 Keep the file in the same place and use the same browser each time, because the browser ties your saved data to that file location. On some privacy-focused setups, check that your browser is not set to delete site data on close.
 
-## Host your own copy
-
-This is a single static HTML file, so any static host works. On GitHub Pages:
-
-1. Fork this repository, or create a new one and upload `index.html`.
-2. Go to **Settings, Pages**.
-3. Under **Build and deployment**, choose **Deploy from a branch**, pick `main` and `/ (root)`, and save.
-4. Your page appears at `https://YOUR-USERNAME.github.io/REPOSITORY-NAME/` after about a minute.
 
 ## Technical notes
 
@@ -89,9 +81,6 @@ This is a single static HTML file, so any static host works. On GitHub Pages:
 - Works in current versions of Firefox, Chrome, Edge and Safari, on desktop and phone.
 - Light and dark mode follow your system setting.
 
-## License
-
-Choose a license for your repository, for example MIT, and add a `LICENSE` file.
 
 ---
 
